@@ -636,15 +636,60 @@ const DEFAULT_DATA = {
 const KEYS = ['one','two','three','four','five','six','seven','eight','nine'];
 
 /* ════════════════════════════════════════════
-   STORAGE — localStorage 영구 저장소
+   FIREBASE REALTIME DB  (텍스트 데이터)
+   CLOUDINARY             (이미지 / 파일)
+   ════════════════════════════════════════════ */
+const FIREBASE_DB       = 'https://portfolio2026uiux-default-rtdb.firebaseio.com';
+const CLOUDINARY_CLOUD  = 'ddfkjrmxc';
+const CLOUDINARY_PRESET = 'portfolio_img';
+
+/* ── Firebase helpers ── */
+async function dbGet(path) {
+  try {
+    const res = await fetch(FIREBASE_DB + path + '.json');
+    return res.ok ? await res.json() : null;
+  } catch { return null; }
+}
+async function dbSet(path, data) {
+  try {
+    const res = await fetch(FIREBASE_DB + path + '.json', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('DB write failed');
+  } catch(e) { console.error('Firebase 저장 오류:', e); }
+}
+
+/* ── Cloudinary 이미지 업로드 ── */
+async function uploadToCloudinary(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  fd.append('folder', 'portfolio');
+  const res = await fetch(
+    'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/auto/upload',
+    { method: 'POST', body: fd }
+  );
+  if (!res.ok) throw new Error('Cloudinary 업로드 실패');
+  const json = await res.json();
+  return { name: file.name, type: file.type, data: json.secure_url };
+}
+
+/* ════════════════════════════════════════════
+   STORAGE — 전 기기 공유
    ════════════════════════════════════════════ */
 async function loadAllData() {
   const data = {};
-  for (const key of KEYS) {
-    try {
-      const saved = localStorage.getItem('portfolio:' + key);
-      data[key] = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
-    } catch {
+  try {
+    const remote = await dbGet('/portfolio');
+    for (const key of KEYS) {
+      data[key] = (remote && remote[key])
+        ? remote[key]
+        : JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
+    }
+  } catch {
+    for (const key of KEYS) {
       data[key] = JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
     }
   }
@@ -652,7 +697,7 @@ async function loadAllData() {
 }
 
 async function saveItem(key, item) {
-  localStorage.setItem('portfolio:' + key, JSON.stringify(item));
+  await dbSet('/portfolio/' + key, item);
 }
 
 /* ════════════════════════════════════════════
@@ -798,6 +843,22 @@ modalClose.addEventListener('click', closeModal);
 overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeAdmin(); } });
 
+/* ── 시크릿 단축키: 키보드로 "admin" 순서 타이핑 시 관리자 패널 열림 ── */
+(function() {
+  const SECRET = 'admin';
+  let buffer = '';
+  let timer = null;
+  document.addEventListener('keydown', function(e) {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    buffer += e.key.toLowerCase();
+    if (buffer.length > SECRET.length) buffer = buffer.slice(-SECRET.length);
+    clearTimeout(timer);
+    if (buffer === SECRET) { buffer = ''; openAdmin(); }
+    else { timer = setTimeout(function() { buffer = ''; }, 1500); }
+  });
+}());
+
 /* ── 시크릿 단축키: 키보드에서 "admin" 순서대로 타이핑하면 관리자 패널 열림 ── */
 (function() {
   const SECRET = 'admin';
@@ -930,11 +991,24 @@ fileInput.addEventListener('change', async () => {
 });
 
 async function addFiles(files) {
+  // 업로드 버튼 잠금
+  const saveBtn = document.getElementById('save-btn');
+  const origTxt = saveBtn ? saveBtn.textContent : '';
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '업로드 중...'; }
+
   for (const file of files) {
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') continue;
-    const b64 = await fileToBase64(file);
-    pendingFiles.push(b64);
+    try {
+      const fileObj = await uploadToCloudinary(file);
+      pendingFiles.push(fileObj);
+    } catch(e) {
+      console.error('Cloudinary 업로드 실패, base64로 대체:', e);
+      const b64 = await fileToBase64(file);
+      pendingFiles.push(b64);
+    }
   }
+
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = origTxt; }
   renderUploadPreview();
 }
 
