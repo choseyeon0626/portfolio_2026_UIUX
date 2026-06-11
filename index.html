@@ -237,21 +237,41 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
 }
 .modal__close:hover{background:rgba(255,255,255,0.14)}
 
-/* ── Admin Modal ── */
+/* ── Admin Bottom Drawer ── */
 .admin-overlay{
   position:fixed;inset:0;z-index:300;
-  display:flex;align-items:center;justify-content:center;
-  padding:24px;background:rgba(2,2,2,0.9);backdrop-filter:blur(18px);
-  opacity:0;pointer-events:none;transition:opacity 260ms ease;
+  pointer-events:none;
 }
-.admin-overlay.is-open{opacity:1;pointer-events:all}
+.admin-overlay.is-open{pointer-events:all}
+.admin-overlay::before{
+  content:"";position:absolute;inset:0;
+  background:rgba(2,2,2,0.55);backdrop-filter:blur(6px);
+  opacity:0;transition:opacity 280ms ease;pointer-events:none;
+}
+.admin-overlay.is-open::before{opacity:1}
 .admin-panel{
-  width:min(560px,100%);background:#0e0e10;
-  border:1px solid rgba(255,255,255,0.18);padding:clamp(24px,4vw,40px);
-  display:grid;gap:24px;
-  transform:translateY(20px);transition:transform 280ms cubic-bezier(0.22,1,0.36,1);
+  position:absolute;bottom:0;left:0;right:0;
+  max-height:82vh;overflow-y:auto;
+  background:#0e0e10;
+  border-top:1px solid rgba(255,255,255,0.22);
+  padding:0;
+  display:flex;flex-direction:column;
+  transform:translateY(100%);
+  transition:transform 320ms cubic-bezier(0.22,1,0.36,1);
+  pointer-events:all;
 }
 .admin-overlay.is-open .admin-panel{transform:translateY(0)}
+.admin-panel::before{
+  content:"";display:block;width:40px;height:4px;border-radius:2px;
+  background:rgba(255,255,255,0.22);margin:12px auto 0;flex-shrink:0;
+}
+.admin-panel-inner{
+  padding:clamp(16px,3vw,28px) clamp(20px,4vw,48px) clamp(20px,3vw,32px);
+  display:grid;gap:20px;
+}
+@media(min-width:900px){
+  .admin-panel-inner{max-width:1100px;margin:0 auto;width:100%;}
+}
 .admin-panel h3{color:var(--paper);font-size:18px;font-weight:400;letter-spacing:-0.03em}
 .admin-panel label{display:block;color:rgba(255,255,255,0.5);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
 .admin-panel input[type=text],
@@ -494,99 +514,101 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
   </div>
 </div>
 
-<!-- ── Admin Overlay ── -->
+<!-- ── Admin Bottom Drawer ── -->
 <div class="admin-overlay" id="admin-overlay">
   <div class="admin-panel" id="admin-panel">
+    <div class="admin-panel-inner">
 
-    <!-- Step 1: Auth -->
-    <div id="auth-view">
-      <h3>관리자 로그인</h3>
-      <div class="auth-panel">
-        <div>
-          <label>비밀번호</label>
-          <input type="password" id="pw-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
-        </div>
-        <p class="admin-error" id="auth-error" style="display:none">비밀번호가 올바르지 않습니다.</p>
-        <div class="admin-actions">
-          <button class="btn" id="auth-cancel-btn">취소</button>
-          <button class="btn btn--primary" id="auth-submit-btn">로그인</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2: Select item -->
-    <div id="select-view" style="display:none">
-      <h3>편집할 항목 선택</h3>
-      <div class="admin-item-grid" id="admin-item-grid"></div>
-      <div class="admin-actions" style="margin-top:8px">
-        <button class="btn btn--danger btn--sm" id="logout-btn">로그아웃</button>
-        <button class="btn" id="close-admin-btn">닫기</button>
-      </div>
-    </div>
-
-    <!-- Step 3: Edit form -->
-    <div id="edit-view" style="display:none">
-      <h3 id="edit-view-title">항목 편집</h3>
-      <div class="admin-form-grid">
-        <div class="admin-form-full">
-          <label>제목 (카드 라벨)</label>
-          <input type="text" id="f-label" placeholder="예: UI/UX&#10;BRANDING">
-        </div>
-        <div class="admin-form-full">
-          <label>카드 설명 (하단 캡션)</label>
-          <input type="text" id="f-caption" placeholder="짧은 한 줄 설명">
-        </div>
-        <div>
-          <label>태그</label>
-          <input type="text" id="f-tag" placeholder="예: UI/UX · Branding">
-        </div>
-        <div>
-          <label>연도</label>
-          <input type="text" id="f-year" placeholder="예: 2024">
-        </div>
-        <div>
-          <label>역할</label>
-          <input type="text" id="f-role" placeholder="예: 디자이너">
-        </div>
-        <div>
-          <label>종류</label>
-          <input type="text" id="f-type" placeholder="예: 브랜딩 / 패턴 디자인">
-        </div>
-        <div class="admin-form-full">
-          <label>설명 (팝업 본문)</label>
-          <textarea id="f-desc" rows="4" placeholder="프로젝트 상세 설명"></textarea>
-        </div>
-        <div class="admin-form-full">
-          <label>썸네일 색상</label>
-          <select id="f-color">
-            <option value="work-thumb--warm">Warm (갈색)</option>
-            <option value="work-thumb--light">Light (밝은 베이지)</option>
-            <option value="work-thumb--cream">Cream (크림)</option>
-            <option value="work-thumb--charcoal">Charcoal (어두운 회색)</option>
-            <option value="work-thumb--soft">Soft (소프트 베이지)</option>
-            <option value="work-thumb--navy">Navy (네이비)</option>
-            <option value="work-thumb--blue">Blue (블루)</option>
-            <option value="work-thumb--sky">Sky (하늘)</option>
-            <option value="work-thumb--mint">Mint (민트)</option>
-          </select>
-        </div>
-        <div class="admin-form-full">
-          <label>이미지 / PDF 업로드</label>
-          <div class="admin-upload-zone" id="upload-zone">
-            <p>클릭하거나 파일을 드래그하세요</p>
-            <small>이미지(JPG, PNG, GIF, WEBP) 및 PDF 지원 · 여러 파일 가능</small>
+      <!-- Step 1: Auth -->
+      <div id="auth-view">
+        <h3>관리자 로그인</h3>
+        <div class="auth-panel" style="max-width:340px">
+          <div>
+            <label>비밀번호</label>
+            <input type="password" id="pw-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
           </div>
-          <input type="file" id="file-input" accept="image/*,.pdf" multiple style="display:none">
-          <div class="upload-preview" id="upload-preview" style="margin-top:10px"></div>
+          <p class="admin-error" id="auth-error" style="display:none">비밀번호가 올바르지 않습니다.</p>
+          <div class="admin-actions">
+            <button class="btn" id="auth-cancel-btn">취소</button>
+            <button class="btn btn--primary" id="auth-submit-btn">로그인</button>
+          </div>
         </div>
       </div>
-      <p class="admin-success" id="save-success" style="display:none">저장되었습니다!</p>
-      <div class="admin-actions">
-        <button class="btn" id="back-btn">← 목록</button>
-        <button class="btn btn--primary" id="save-btn">저장</button>
-      </div>
-    </div>
 
+      <!-- Step 2: Select item -->
+      <div id="select-view" style="display:none">
+        <h3>편집할 항목 선택</h3>
+        <div class="admin-item-grid" id="admin-item-grid"></div>
+        <div class="admin-actions" style="margin-top:8px">
+          <button class="btn btn--danger btn--sm" id="logout-btn">로그아웃</button>
+          <button class="btn" id="close-admin-btn">닫기</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Edit form (wide) -->
+      <div id="edit-view" style="display:none">
+        <h3 id="edit-view-title">항목 편집</h3>
+        <div class="admin-form-grid admin-form-grid--wide">
+          <div>
+            <label>제목 (카드 라벨)</label>
+            <input type="text" id="f-label" placeholder="예: UI/UX&#10;BRANDING">
+          </div>
+          <div>
+            <label>카드 설명 (하단 캐프션)</label>
+            <input type="text" id="f-caption" placeholder="짧은 한 줄 설명">
+          </div>
+          <div>
+            <label>태그</label>
+            <input type="text" id="f-tag" placeholder="예: UI/UX · Branding">
+          </div>
+          <div>
+            <label>연도</label>
+            <input type="text" id="f-year" placeholder="예: 2024">
+          </div>
+          <div>
+            <label>역할</label>
+            <input type="text" id="f-role" placeholder="예: 디자이너">
+          </div>
+          <div>
+            <label>종류</label>
+            <input type="text" id="f-type" placeholder="예: 브랜딩 / 패턴 디자인">
+          </div>
+          <div class="admin-form-full">
+            <label>설명 (팝업 본문)</label>
+            <textarea id="f-desc" rows="3" placeholder="프로젝트 상세 설명"></textarea>
+          </div>
+          <div>
+            <label>썸네일 색상</label>
+            <select id="f-color">
+              <option value="work-thumb--warm">Warm (갈색)</option>
+              <option value="work-thumb--light">Light (밝은 베이지)</option>
+              <option value="work-thumb--cream">Cream (크림)</option>
+              <option value="work-thumb--charcoal">Charcoal (어두운 회색)</option>
+              <option value="work-thumb--soft">Soft (소프트 베이지)</option>
+              <option value="work-thumb--navy">Navy (네이비)</option>
+              <option value="work-thumb--blue">Blue (블루)</option>
+              <option value="work-thumb--sky">Sky (하늘)</option>
+              <option value="work-thumb--mint">Mint (민트)</option>
+            </select>
+          </div>
+          <div class="admin-form-full">
+            <label>이미지 / PDF 업로드</label>
+            <div class="admin-upload-zone" id="upload-zone">
+              <p>클릭하거나 파일을 드래그하세요</p>
+              <small>이미지(JPG, PNG, GIF, WEBP) 및 PDF 지원 · 여러 파일 가능</small>
+            </div>
+            <input type="file" id="file-input" accept="image/*,.pdf" multiple style="display:none">
+            <div class="upload-preview" id="upload-preview" style="margin-top:10px"></div>
+          </div>
+        </div>
+        <p class="admin-success" id="save-success" style="display:none">저장되었습니다!</p>
+        <div class="admin-actions">
+          <button class="btn" id="back-btn">← 목록</button>
+          <button class="btn btn--primary" id="save-btn">저장</button>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -594,7 +616,7 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
 /* ════════════════════════════════════════════
    CONFIG — 비밀번호를 여기서 변경하세요
    ════════════════════════════════════════════ */
-const ADMIN_PW = 'seyeon2024';
+const ADMIN_PW = '0000';
 
 /* ════════════════════════════════════════════
    DEFAULT WORK DATA
@@ -614,14 +636,14 @@ const DEFAULT_DATA = {
 const KEYS = ['one','two','three','four','five','six','seven','eight','nine'];
 
 /* ════════════════════════════════════════════
-   STORAGE — Artifact 영구 저장소
+   STORAGE — localStorage 영구 저장소
    ════════════════════════════════════════════ */
 async function loadAllData() {
   const data = {};
   for (const key of KEYS) {
     try {
-      const result = await window.storage.get('portfolio:' + key);
-      data[key] = result ? JSON.parse(result.value) : JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
+      const saved = localStorage.getItem('portfolio:' + key);
+      data[key] = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
     } catch {
       data[key] = JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
     }
@@ -630,7 +652,7 @@ async function loadAllData() {
 }
 
 async function saveItem(key, item) {
-  await window.storage.set('portfolio:' + key, JSON.stringify(item));
+  localStorage.setItem('portfolio:' + key, JSON.stringify(item));
 }
 
 /* ════════════════════════════════════════════
