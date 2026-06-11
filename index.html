@@ -391,7 +391,7 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
     <a href="#work">Work</a>
     <a href="#contact">Contact</a>
   </nav>
-  <button class="admin-btn" id="admin-toggle-btn">ADMIN</button>
+  <button class="admin-btn" id="admin-toggle-btn" style="display:none" aria-hidden="true">ADMIN</button>
 </header>
 
 <main>
@@ -616,7 +616,7 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
 /* ════════════════════════════════════════════
    CONFIG — 비밀번호를 여기서 변경하세요
    ════════════════════════════════════════════ */
-const ADMIN_PW = '0000';
+const ADMIN_PW = '0703';
 
 /* ════════════════════════════════════════════
    DEFAULT WORK DATA
@@ -797,6 +797,26 @@ function closeModal() {
 modalClose.addEventListener('click', closeModal);
 overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeAdmin(); } });
+
+/* ── 시크릿 단축키: 키보드에서 "admin" 순서대로 타이핑하면 관리자 패널 열림 ── */
+(function() {
+  const SECRET = 'admin';
+  let buffer = '';
+  let timer = null;
+  document.addEventListener('keydown', function(e) {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    buffer += e.key.toLowerCase();
+    if (buffer.length > SECRET.length) buffer = buffer.slice(-SECRET.length);
+    clearTimeout(timer);
+    if (buffer === SECRET) {
+      buffer = '';
+      openAdmin();
+    } else {
+      timer = setTimeout(function() { buffer = ''; }, 1500);
+    }
+  });
+}());
 
 document.querySelectorAll('.work-item').forEach(el => {
   el.addEventListener('click', () => openModal(el.dataset.key));
