@@ -134,6 +134,8 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
 .work-item--seven{grid-column:7/span 2;grid-row:5/span 2}
 .work-item--eight{grid-column:9/span 2;grid-row:5/span 2}
 .work-item--nine {grid-column:11/span 2;grid-row:5/span 2}
+/* ── 동적 추가 카드: 자동 흐름 배치 ── */
+.work-item--dynamic {grid-column:span 2;grid-row:span 2}
 
 .work-thumb{
   position:relative;display:flex;align-items:flex-end;
@@ -808,10 +810,10 @@ function renderAllCards() {
 }
 
 function createCardDOM(key) {
-  const worksGrid = document.querySelector('.works-grid');
+  const worksGrid = document.getElementById('work-board');
   if (!worksGrid || worksGrid.querySelector(`.work-item[data-key="${key}"]`)) return;
   const fig = document.createElement('figure');
-  fig.className = 'work-item reveal is-visible';
+  fig.className = 'work-item work-item--dynamic reveal is-visible';
   fig.dataset.key = key;
   fig.innerHTML = '<div class="work-thumb work-thumb--warm"><span></span></div><figcaption></figcaption>';
   fig.addEventListener('click', () => openModal(key));
