@@ -514,6 +514,16 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
   </div>
 </div>
 
+
+<!-- ── Lightbox (사진 전체화면) ── -->
+<div id="lightbox" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);backdrop-filter:blur(12px);align-items:center;justify-content:center;flex-direction:column">
+  <button id="lb-close" style="position:absolute;top:20px;right:24px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;z-index:10001;opacity:0.7;transition:opacity 0.2s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7">✕</button>
+  <button id="lb-prev" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:24px;width:48px;height:48px;cursor:pointer;border-radius:50%;transition:background 0.2s;z-index:10001" onmouseenter="this.style.background='rgba(255,255,255,0.25)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'">‹</button>
+  <button id="lb-next" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:24px;width:48px;height:48px;cursor:pointer;border-radius:50%;transition:background 0.2s;z-index:10001" onmouseenter="this.style.background='rgba(255,255,255,0.25)'" onmouseleave="this.style.background='rgba(255,255,255,0.1)'">›</button>
+  <img id="lb-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:4px;box-shadow:0 24px 80px rgba(0,0,0,0.6);transition:opacity 0.2s" alt="">
+  <div id="lb-counter" style="margin-top:16px;color:rgba(255,255,255,0.5);font-size:13px;letter-spacing:0.08em"></div>
+</div>
+
 <!-- ── Admin Bottom Drawer ── -->
 <div class="admin-overlay" id="admin-overlay">
   <div class="admin-panel" id="admin-panel">
@@ -539,8 +549,10 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
       <div id="select-view" style="display:none">
         <h3>편집할 항목 선택</h3>
         <div class="admin-item-grid" id="admin-item-grid"></div>
-        <div class="admin-actions" style="margin-top:8px">
+        <div class="admin-actions" style="margin-top:8px;flex-wrap:wrap;gap:8px">
           <button class="btn btn--danger btn--sm" id="logout-btn">로그아웃</button>
+          <button class="btn btn--sm" id="add-item-btn">+ 새 항목 추가</button>
+          <button class="btn btn--sm" id="change-pw-btn">🔑 비밀번호 변경</button>
           <button class="btn" id="close-admin-btn">닫기</button>
         </div>
       </div>
@@ -608,6 +620,31 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
         </div>
       </div>
 
+      <!-- Step 4: 비밀번호 변경 -->
+      <div id="pw-view" style="display:none">
+        <h3>비밀번호 변경</h3>
+        <div class="auth-panel" style="max-width:340px">
+          <div>
+            <label>현재 비밀번호</label>
+            <input type="password" id="pw-current" placeholder="현재 비밀번호">
+          </div>
+          <div>
+            <label>새 비밀번호</label>
+            <input type="password" id="pw-new" placeholder="새 비밀번호">
+          </div>
+          <div>
+            <label>새 비밀번호 확인</label>
+            <input type="password" id="pw-confirm" placeholder="새 비밀번호 재입력">
+          </div>
+          <p class="admin-error" id="pw-error" style="display:none"></p>
+          <p class="admin-success" id="pw-success" style="display:none">비밀번호가 변경되었습니다!</p>
+          <div class="admin-actions">
+            <button class="btn" id="pw-back-btn">← 목록</button>
+            <button class="btn btn--primary" id="pw-save-btn">변경 저장</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -616,7 +653,7 @@ small{color:rgba(2,2,2,0.56);font-size:12px}
 /* ════════════════════════════════════════════
    CONFIG — 비밀번호를 여기서 변경하세요
    ════════════════════════════════════════════ */
-const ADMIN_PW = '0703';
+let ADMIN_PW = '0703';
 
 /* ════════════════════════════════════════════
    DEFAULT WORK DATA
@@ -633,7 +670,7 @@ const DEFAULT_DATA = {
   nine:  {label:'AWARD\nSTUDY',caption:'독서, 자격, 수상으로 확장한 성장의 축적',tag:'Award & Study',title:'독서, 자격, 수상으로 확장한 성장의 축적',desc:'디자인 관련 독서 활동, 자격증 취득, 각종 공모전 수상까지 학업 외 자기계발의 여정을 정리한 아카이브입니다.',type:'자기계발 / 수상',role:'학습자',year:'2023–2024',color:'work-thumb--mint',files:[]}
 };
 
-const KEYS = ['one','two','three','four','five','six','seven','eight','nine'];
+let KEYS = ['one','two','three','four','five','six','seven','eight','nine'];
 
 /* ════════════════════════════════════════════
    FIREBASE REALTIME DB  (텍스트 데이터)
@@ -682,11 +719,21 @@ async function uploadToCloudinary(file) {
 async function loadAllData() {
   const data = {};
   try {
+    // 비밀번호 로드
+    const savedPw = await dbGet('/config/password');
+    if (savedPw && typeof savedPw === 'string') ADMIN_PW = savedPw;
+
     const remote = await dbGet('/portfolio');
+    // 동적 추가된 키도 포함
+    const remoteKeys = remote ? Object.keys(remote) : [];
+    const allKeys = [...new Set([...KEYS, ...remoteKeys])];
+    KEYS = allKeys;
+
     for (const key of KEYS) {
       data[key] = (remote && remote[key])
         ? remote[key]
-        : JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
+        : (DEFAULT_DATA[key] ? JSON.parse(JSON.stringify(DEFAULT_DATA[key])) : null);
+      if (!data[key]) { KEYS = KEYS.filter(k=>k!==key); }
     }
   } catch {
     for (const key of KEYS) {
@@ -760,6 +807,17 @@ function renderAllCards() {
   KEYS.forEach(key => renderCard(key, allData[key]));
 }
 
+function createCardDOM(key) {
+  const worksGrid = document.querySelector('.works-grid');
+  if (!worksGrid || worksGrid.querySelector(`.work-item[data-key="${key}"]`)) return;
+  const fig = document.createElement('figure');
+  fig.className = 'work-item reveal is-visible';
+  fig.dataset.key = key;
+  fig.innerHTML = '<div class="work-thumb work-thumb--warm"><span></span></div><figcaption></figcaption>';
+  fig.addEventListener('click', () => openModal(key));
+  worksGrid.appendChild(fig);
+}
+
 /* ════════════════════════════════════════════
    PORTFOLIO MODAL
    ════════════════════════════════════════════ */
@@ -785,6 +843,8 @@ function openModal(key) {
   if (images.length > 0) {
     const img = document.createElement('img');
     img.src = images[0].data; img.alt = d.title||'';
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', () => openLightbox(images, 0));
     modalThumb.insertBefore(img, modalThumb.firstChild);
     modalLabel.textContent = '';
   } else {
@@ -806,17 +866,19 @@ function openModal(key) {
     const imgFiles = d.files.filter(f => f.type && f.type.startsWith('image/'));
     const pdfFiles = d.files.filter(f => f.type === 'application/pdf');
 
-    if (imgFiles.length > 1) {
+    if (imgFiles.length > 0) {
       const grid = document.createElement('div');
-      grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:8px';
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px';
       imgFiles.forEach((f,i) => {
-        if (i===0) return; // already shown in thumb
         const img = document.createElement('img');
         img.src = f.data; img.alt = f.name;
-        img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border:1px solid rgba(255,255,255,0.1)';
+        img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border:1px solid rgba(255,255,255,0.1);cursor:zoom-in;transition:opacity 0.2s';
+        img.onmouseenter = () => img.style.opacity = '0.8';
+        img.onmouseleave = () => img.style.opacity = '1';
+        img.addEventListener('click', () => openLightbox(imgFiles, i));
         grid.appendChild(img);
       });
-      if (grid.children.length) modalFiles.appendChild(grid);
+      modalFiles.appendChild(grid);
     }
 
     pdfFiles.forEach(f => {
@@ -859,25 +921,7 @@ document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal()
   });
 }());
 
-/* ── 시크릿 단축키: 키보드에서 "admin" 순서대로 타이핑하면 관리자 패널 열림 ── */
-(function() {
-  const SECRET = 'admin';
-  let buffer = '';
-  let timer = null;
-  document.addEventListener('keydown', function(e) {
-    const tag = document.activeElement && document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-    buffer += e.key.toLowerCase();
-    if (buffer.length > SECRET.length) buffer = buffer.slice(-SECRET.length);
-    clearTimeout(timer);
-    if (buffer === SECRET) {
-      buffer = '';
-      openAdmin();
-    } else {
-      timer = setTimeout(function() { buffer = ''; }, 1500);
-    }
-  });
-}());
+
 
 document.querySelectorAll('.work-item').forEach(el => {
   el.addEventListener('click', () => openModal(el.dataset.key));
@@ -914,13 +958,55 @@ function closeAdmin() {
   document.body.style.overflow = '';
 }
 
+/* ════════════════════════════════════════════
+   LIGHTBOX
+   ════════════════════════════════════════════ */
+let lbImages = [];
+let lbIndex  = 0;
+const lb       = document.getElementById('lightbox');
+const lbImg    = document.getElementById('lb-img');
+const lbCounter= document.getElementById('lb-counter');
+
+function openLightbox(imgs, idx) {
+  lbImages = imgs;
+  lbIndex  = idx;
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  showLbImage();
+}
+function closeLightbox() {
+  lb.style.display = 'none';
+  document.body.style.overflow = '';
+}
+function showLbImage() {
+  lbImg.style.opacity = '0';
+  setTimeout(() => {
+    lbImg.src = lbImages[lbIndex].data;
+    lbImg.style.opacity = '1';
+  }, 150);
+  lbCounter.textContent = lbImages.length > 1 ? (lbIndex+1) + ' / ' + lbImages.length : '';
+  document.getElementById('lb-prev').style.display = lbImages.length > 1 ? '' : 'none';
+  document.getElementById('lb-next').style.display = lbImages.length > 1 ? '' : 'none';
+}
+document.getElementById('lb-close').addEventListener('click', closeLightbox);
+document.getElementById('lb-prev').addEventListener('click', () => { lbIndex = (lbIndex - 1 + lbImages.length) % lbImages.length; showLbImage(); });
+document.getElementById('lb-next').addEventListener('click', () => { lbIndex = (lbIndex + 1) % lbImages.length; showLbImage(); });
+lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+document.addEventListener('keydown', e => {
+  if (lb.style.display !== 'flex') return;
+  if (e.key === 'ArrowLeft')  { lbIndex = (lbIndex - 1 + lbImages.length) % lbImages.length; showLbImage(); }
+  if (e.key === 'ArrowRight') { lbIndex = (lbIndex + 1) % lbImages.length; showLbImage(); }
+  if (e.key === 'Escape')     { closeLightbox(); }
+});
+
+const pwView = document.getElementById('pw-view');
 function showAuthView() {
-  authView.style.display=''; selectView.style.display='none'; editView.style.display='none';
+  authView.style.display=''; selectView.style.display='none'; editView.style.display='none'; pwView.style.display='none';
   pwInput.value=''; authError.style.display='none';
   setTimeout(() => pwInput.focus(), 100);
 }
 function showSelectView() {
-  authView.style.display='none'; selectView.style.display=''; editView.style.display='none';
+  authView.style.display='none'; selectView.style.display=''; editView.style.display='none'; pwView.style.display='none';
   adminItemGrid.innerHTML = '';
   KEYS.forEach(key => {
     const d = allData[key];
@@ -932,7 +1018,15 @@ function showSelectView() {
   });
 }
 function showEditView() {
-  authView.style.display='none'; selectView.style.display='none'; editView.style.display='';
+  authView.style.display='none'; selectView.style.display='none'; editView.style.display=''; pwView.style.display='none';
+}
+function showPwView() {
+  authView.style.display='none'; selectView.style.display='none'; editView.style.display='none'; pwView.style.display='';
+  document.getElementById('pw-current').value='';
+  document.getElementById('pw-new').value='';
+  document.getElementById('pw-confirm').value='';
+  document.getElementById('pw-error').style.display='none';
+  document.getElementById('pw-success').style.display='none';
 }
 
 function openEditView(key) {
@@ -1027,6 +1121,37 @@ document.getElementById('auth-submit-btn').addEventListener('click', () => {
 });
 pwInput.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('auth-submit-btn').click(); });
 document.getElementById('auth-cancel-btn').addEventListener('click', closeAdmin);
+
+/* ── 비밀번호 변경 ── */
+document.getElementById('change-pw-btn').addEventListener('click', showPwView);
+document.getElementById('pw-back-btn').addEventListener('click', showSelectView);
+document.getElementById('pw-save-btn').addEventListener('click', async () => {
+  const cur     = document.getElementById('pw-current').value;
+  const nw      = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  const errEl   = document.getElementById('pw-error');
+  const sucEl   = document.getElementById('pw-success');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (cur !== ADMIN_PW)    { errEl.textContent='현재 비밀번호가 틀렸습니다.'; errEl.style.display='block'; return; }
+  if (nw.length < 4)       { errEl.textContent='새 비밀번호는 4자 이상이어야 합니다.'; errEl.style.display='block'; return; }
+  if (nw !== confirm)      { errEl.textContent='새 비밀번호가 일치하지 않습니다.'; errEl.style.display='block'; return; }
+  ADMIN_PW = nw;
+  await dbSet('/config/password', nw);
+  sucEl.style.display = 'block';
+  setTimeout(() => showSelectView(), 1500);
+});
+
+/* ── 새 항목 추가 ── */
+document.getElementById('add-item-btn').addEventListener('click', () => {
+  const key = 'item_' + Date.now();
+  KEYS.push(key);
+  allData[key] = {
+    label:'NEW\nITEM', caption:'새 포트폴리오 항목', tag:'', title:'새 포트폴리오',
+    desc:'', type:'', role:'', year:'2024', color:'work-thumb--warm', files:[]
+  };
+  createCardDOM(key);
+  openEditView(key);
+});
 document.getElementById('close-admin-btn').addEventListener('click', closeAdmin);
 document.getElementById('logout-btn').addEventListener('click', () => {
   isAdmin = false;
@@ -1095,6 +1220,12 @@ sections.forEach(s => sectionObs.observe(s));
    ════════════════════════════════════════════ */
 (async () => {
   allData = await loadAllData();
+  // 동적으로 추가된 항목 DOM 생성
+  KEYS.forEach(key => {
+    if (!document.querySelector(`.work-item[data-key="${key}"]`)) {
+      createCardDOM(key);
+    }
+  });
   renderAllCards();
 })();
 </script>
