@@ -380,21 +380,10 @@ textarea{resize:vertical;min-height:90px}
 </div>
 
 <script>
-/*
- ╔══════════════════════════════════════════════════════════╗
- ║  Firebase Realtime Database Rules 설정 필요:             ║
- ║  https://console.firebase.google.com                     ║
- ║  → Realtime Database → Rules → 아래로 설정:             ║
- ║  {                                                       ║
- ║    "rules": {                                            ║
- ║      ".read": "auth != null",                           ║
- ║      ".write": "auth != null"                           ║
- ║    }                                                     ║
- ║  }                                                       ║
- ╚══════════════════════════════════════════════════════════╝
 /* ══════════════════════════════════════════════
    FIREBASE CONFIG
 ══════════════════════════════════════════════ */
+const firebaseConfig = {
   apiKey: "AIzaSyCF4c6017RNfmP5AoXgiVvNxvt9TDcpHss",
   authDomain: "portfolio2026uiux.firebaseapp.com",
   databaseURL: "https://portfolio2026uiux-default-rtdb.firebaseio.com",
