@@ -1,2 +1,2 @@
 # portfolio_2026_UIUX
-[text](https://portfoliochosy.netlify.app/)
+[portfolio_2026_UIUX](https://portfoliochosy.netlify.app/)
