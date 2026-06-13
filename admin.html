@@ -380,10 +380,21 @@ textarea{resize:vertical;min-height:90px}
 </div>
 
 <script>
+/*
+ ╔══════════════════════════════════════════════════════════╗
+ ║  Firebase Realtime Database Rules 설정 필요:             ║
+ ║  https://console.firebase.google.com                     ║
+ ║  → Realtime Database → Rules → 아래로 설정:             ║
+ ║  {                                                       ║
+ ║    "rules": {                                            ║
+ ║      ".read": "auth != null",                           ║
+ ║      ".write": "auth != null"                           ║
+ ║    }                                                     ║
+ ║  }                                                       ║
+ ╚══════════════════════════════════════════════════════════╝
 /* ══════════════════════════════════════════════
    FIREBASE CONFIG
 ══════════════════════════════════════════════ */
-const firebaseConfig = {
   apiKey: "AIzaSyCF4c6017RNfmP5AoXgiVvNxvt9TDcpHss",
   authDomain: "portfolio2026uiux.firebaseapp.com",
   databaseURL: "https://portfolio2026uiux-default-rtdb.firebaseio.com",
@@ -424,22 +435,31 @@ const DEFAULT_DATA = {
 };
 
 /* ══════════════════════════════════════════════
-   FIREBASE DB HELPERS
+   FIREBASE DB HELPERS — SDK 방식 (인증 토큰 자동 포함)
 ══════════════════════════════════════════════ */
 async function dbGet(path) {
   try {
-    const res = await fetch(FIREBASE_DB + path + '.json');
-    return res.ok ? await res.json() : null;
-  } catch { return null; }
+    const snap = await db.ref(path).once('value');
+    return snap.val();
+  } catch(e) { console.error('dbGet 오류:', path, e); return null; }
 }
 async function dbSet(path, data) {
   try {
-    await fetch(FIREBASE_DB + path + '.json', {
-      method: 'PUT',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-  } catch(e) { console.error('Firebase 오류:', e); }
+    await db.ref(path).set(data);
+  } catch(e) {
+    console.error('dbSet 오류:', path, e);
+    alert('저장 실패: ' + e.message + '\n\nFirebase 권한을 확인해주세요.');
+    throw e;
+  }
+}
+async function dbDelete(path) {
+  try {
+    await db.ref(path).remove();
+  } catch(e) {
+    console.error('dbDelete 오류:', path, e);
+    alert('삭제 실패: ' + e.message);
+    throw e;
+  }
 }
 
 /* ══════════════════════════════════════════════
@@ -498,9 +518,11 @@ async function loadAllData() {
         data[key] = JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
       }
     }
+    console.log('✅ Firebase 로드 완료. 항목 수:', Object.keys(data).length);
     return data;
   } catch(e) {
-    console.error('loadAllData 오류:', e);
+    console.error('❌ loadAllData 오류:', e);
+    alert('데이터 로드 실패: ' + e.message + '\n\nFirebase 콘솔에서 Rules를 확인하세요.');
     const data = {};
     for (const key of KEYS) {
       if (DEFAULT_DATA[key]) data[key] = JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
@@ -630,6 +652,9 @@ document.getElementById('edit-panel').addEventListener('click', e => { if (e.tar
 
 document.getElementById('save-btn').addEventListener('click', async () => {
   const key = editingKey; if (!key) return;
+  const saveBtn = document.getElementById('save-btn');
+  const saveSuccess = document.getElementById('save-success');
+
   const item = {
     label:   document.getElementById('f-label').value,
     caption: document.getElementById('f-caption').value,
@@ -642,26 +667,40 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     color:   document.getElementById('f-color').value,
     files:   pendingFiles,
   };
-  allData[key] = item;
-  await dbSet('/portfolio/' + key, item);
-  await dbSet('/config/order', KEYS);
-  document.getElementById('save-success').style.display = 'block';
-  setTimeout(() => {
-    document.getElementById('save-success').style.display = 'none';
-    closeEditPanel();
-    renderItemGrid();
-  }, 1200);
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = '저장 중...';
+
+  try {
+    await dbSet('/portfolio/' + key, item);
+    await dbSet('/config/order', KEYS);
+    allData[key] = item;
+    saveSuccess.style.display = 'block';
+    saveBtn.textContent = '저장';
+    saveBtn.disabled = false;
+    setTimeout(() => {
+      saveSuccess.style.display = 'none';
+      closeEditPanel();
+      renderItemGrid();
+    }, 1200);
+  } catch(e) {
+    saveBtn.textContent = '저장';
+    saveBtn.disabled = false;
+    /* dbSet 내부에서 alert 처리됨 */
+  }
 });
 
 document.getElementById('delete-item-btn').addEventListener('click', async () => {
   const key = editingKey; if (!key) return;
   if (!confirm('이 항목을 삭제할까요?')) return;
-  await fetch(FIREBASE_DB + '/portfolio/' + key + '.json', { method: 'DELETE' });
-  KEYS = KEYS.filter(k => k !== key);
-  delete allData[key];
-  await dbSet('/config/order', KEYS);
-  closeEditPanel();
-  renderItemGrid();
+  try {
+    await dbDelete('/portfolio/' + key);
+    KEYS = KEYS.filter(k => k !== key);
+    delete allData[key];
+    await dbSet('/config/order', KEYS);
+    closeEditPanel();
+    renderItemGrid();
+  } catch(e) { /* dbDelete 내부에서 alert 처리 */ }
 });
 
 /* ══════════════════════════════════════════════
