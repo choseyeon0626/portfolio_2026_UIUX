@@ -19,7 +19,7 @@
     <a href="#work">Work</a>
     <a href="#contact">Contact</a>
   </nav>
-  <button class="admin-btn" id="admin-toggle-btn" style="display:none" aria-hidden="true">ADMIN</button>
+  <a class="admin-btn" href="admin.html" id="admin-toggle-btn" style="display:none" aria-hidden="true">ADMIN</a>
 </header>
 
 <main>
@@ -79,47 +79,17 @@
       <span>Archive &amp; Projects</span>
       <h2>직접 참여하고 경험하며 쌓은 기록과 프로젝트</h2>
     </div>
+    <!-- 카드는 Firebase 데이터를 기반으로 script.js가 동적으로 생성합니다 -->
     <div class="work-board" id="work-board">
-      <figure class="work-item work-item--one reveal" data-key="one">
-        <div class="work-thumb work-thumb--warm"><span>UI/UX<br>BRANDING</span></div>
-        <figcaption>학교 아이덴티티를 담는 패턴 디자인</figcaption>
-      </figure>
-      <figure class="work-item work-item--two reveal" data-key="two">
-        <div class="work-thumb work-thumb--light"><span>GUI<br>STUDY</span></div>
-        <figcaption>GUI 요소 리서치 디자인 스터디 발표 포트폴리오</figcaption>
-      </figure>
-      <figure class="work-item work-item--three reveal" data-key="three">
-        <div class="work-thumb work-thumb--cream"><span>PRINT</span></div>
-        <figcaption>문화 콘텐츠 포장주의 브로슈어 제작</figcaption>
-      </figure>
-      <figure class="work-item work-item--four reveal" data-key="four">
-        <div class="work-thumb work-thumb--charcoal"><span>TVING<br>SYSTEM</span></div>
-        <figcaption>TVING 디자인 시스템 심화 탐구 실습</figcaption>
-      </figure>
-      <figure class="work-item work-item--five reveal" data-key="five">
-        <div class="work-thumb work-thumb--soft"><span>VIDEO</span></div>
-        <figcaption>유튜브 영상 편집 기획 채널 운영</figcaption>
-      </figure>
-      <figure class="work-item work-item--six reveal" data-key="six">
-        <div class="work-thumb work-thumb--navy"><span>WEB<br>REDESIGN</span></div>
-        <figcaption>아티스트 프로젝트 홈페이지 리디자인</figcaption>
-      </figure>
-      <figure class="work-item work-item--seven reveal" data-key="seven">
-        <div class="work-thumb work-thumb--blue"><span>SNS<br>CAMPAIGN</span></div>
-        <figcaption>창업 매장 SNS 게시물 예시 제작</figcaption>
-      </figure>
-      <figure class="work-item work-item--eight reveal" data-key="eight">
-        <div class="work-thumb work-thumb--sky"><span>CLUB<br>ACTIVITY</span></div>
-        <figcaption>커머셜프로그램부 특강 참여 및 홍보 자료 제작</figcaption>
-      </figure>
-      <figure class="work-item work-item--nine reveal" data-key="nine">
-        <div class="work-thumb work-thumb--mint"><span>AWARD<br>STUDY</span></div>
-        <figcaption>독서, 자격, 수상으로 확장한 성장의 축적</figcaption>
-      </figure>
+      <div id="work-loading" style="grid-column:1/-1;text-align:center;padding:60px 0;color:rgba(255,255,255,0.35);font-size:14px;letter-spacing:0.06em">
+        로딩 중...
       </div>
+    </div>
   </section>
+
+  <section class="contact section-shell" id="contact">
     <p class="reveal">mail : chosy070311@gmail.com | call : 010-6271-7560 | instagram : rtolrv</p>
-    <a class="contact__link reveal" href="mailto:hello@example.com">hello@example.com</a>
+    <a class="contact__link reveal" href="mailto:chosy070311@gmail.com">chosy070311@gmail.com</a>
   </section>
 </main>
 
@@ -150,143 +120,7 @@
   <div id="lb-counter" style="margin-top:16px;color:rgba(255,255,255,0.5);font-size:13px;letter-spacing:0.08em"></div>
 </div>
 
-<!-- ── Admin Bottom Drawer ── -->
-<div class="admin-overlay" id="admin-overlay">
-  <div class="admin-panel" id="admin-panel">
-    <div class="admin-panel-inner">
 
-      <!-- Step 1: Auth -->
-      <div id="auth-view">
-        <h3>관리자 로그인</h3>
-        <div class="auth-panel" style="max-width:340px">
-          <div>
-            <label>비밀번호</label>
-            <input type="password" id="pw-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
-          </div>
-          <p class="admin-error" id="auth-error" style="display:none">비밀번호가 올바르지 않습니다.</p>
-          <div class="admin-actions">
-            <button class="btn" id="auth-cancel-btn">취소</button>
-            <button class="btn btn--primary" id="auth-submit-btn">로그인</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2: Select item -->
-      <div id="select-view" style="display:none">
-        <h3>편집할 항목 선택</h3>
-        <div class="admin-item-grid" id="admin-item-grid"></div>
-        <div class="admin-actions" style="margin-top:8px;flex-wrap:wrap;gap:8px">
-          <button class="btn btn--danger btn--sm" id="logout-btn">로그아웃</button>
-          <button class="btn btn--sm" id="add-item-btn">+ 새 항목 추가</button>
-          <button class="btn btn--sm" id="sort-btn">⇅ 순서 변경</button>
-          <button class="btn btn--sm" id="change-pw-btn">🔑 비밀번호 변경</button>
-          <button class="btn" id="close-admin-btn">닫기</button>
-        </div>
-      </div>
-
-      <!-- Step 2-b: Sort items -->
-      <div id="sort-view" style="display:none">
-        <h3>카드 순서 변경</h3>
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:4px">드래그하여 순서를 바꾸세요</p>
-        <div class="sort-grid" id="sort-grid"></div>
-        <div class="admin-actions" style="margin-top:12px;gap:8px">
-          <button class="btn" id="sort-back-btn">← 목록</button>
-          <button class="btn btn--primary" id="sort-save-btn">순서 저장</button>
-        </div>
-        <p class="admin-success" id="sort-success" style="display:none;margin-top:8px">순서가 저장되었습니다!</p>
-      </div>
-
-      <!-- Step 3: Edit form (wide) -->
-      <div id="edit-view" style="display:none">
-        <h3 id="edit-view-title">항목 편집</h3>
-        <div class="admin-form-grid admin-form-grid--wide">
-          <div>
-            <label>제목 (카드 라벨)</label>
-            <input type="text" id="f-label" placeholder="예: UI/UX&#10;BRANDING">
-          </div>
-          <div>
-            <label>카드 설명 (하단 캐프션)</label>
-            <input type="text" id="f-caption" placeholder="짧은 한 줄 설명">
-          </div>
-          <div>
-            <label>태그</label>
-            <input type="text" id="f-tag" placeholder="예: UI/UX · Branding">
-          </div>
-          <div>
-            <label>연도</label>
-            <input type="text" id="f-year" placeholder="예: 2024">
-          </div>
-          <div>
-            <label>역할</label>
-            <input type="text" id="f-role" placeholder="예: 디자이너">
-          </div>
-          <div>
-            <label>종류</label>
-            <input type="text" id="f-type" placeholder="예: 브랜딩 / 패턴 디자인">
-          </div>
-          <div class="admin-form-full">
-            <label>설명 (팝업 본문)</label>
-            <textarea id="f-desc" rows="3" placeholder="프로젝트 상세 설명"></textarea>
-          </div>
-          <div>
-            <label>썸네일 색상</label>
-            <select id="f-color">
-              <option value="work-thumb--warm">Warm (갈색)</option>
-              <option value="work-thumb--light">Light (밝은 베이지)</option>
-              <option value="work-thumb--cream">Cream (크림)</option>
-              <option value="work-thumb--charcoal">Charcoal (어두운 회색)</option>
-              <option value="work-thumb--soft">Soft (소프트 베이지)</option>
-              <option value="work-thumb--navy">Navy (네이비)</option>
-              <option value="work-thumb--blue">Blue (블루)</option>
-              <option value="work-thumb--sky">Sky (하늘)</option>
-              <option value="work-thumb--mint">Mint (민트)</option>
-            </select>
-          </div>
-          <div class="admin-form-full">
-            <label>이미지 / PDF 업로드</label>
-            <div class="admin-upload-zone" id="upload-zone">
-              <p>클릭하거나 파일을 드래그하세요</p>
-              <small>이미지(JPG, PNG, GIF, WEBP), PDF, MP4 지원 · 여러 파일 가능</small>
-            </div>
-            <input type="file" id="file-input" accept="image/*,.pdf,video/mp4" multiple style="display:none">
-            <div class="upload-preview" id="upload-preview" style="margin-top:10px"></div>
-          </div>
-        </div>
-        <p class="admin-success" id="save-success" style="display:none">저장되었습니다!</p>
-        <div class="admin-actions">
-          <button class="btn" id="back-btn">← 목록</button>
-          <button class="btn btn--primary" id="save-btn">저장</button>
-        </div>
-      </div>
-
-      <!-- Step 4: 비밀번호 변경 -->
-      <div id="pw-view" style="display:none">
-        <h3>비밀번호 변경</h3>
-        <div class="auth-panel" style="max-width:340px">
-          <div>
-            <label>현재 비밀번호</label>
-            <input type="password" id="pw-current" placeholder="현재 비밀번호">
-          </div>
-          <div>
-            <label>새 비밀번호</label>
-            <input type="password" id="pw-new" placeholder="새 비밀번호">
-          </div>
-          <div>
-            <label>새 비밀번호 확인</label>
-            <input type="password" id="pw-confirm" placeholder="새 비밀번호 재입력">
-          </div>
-          <p class="admin-error" id="pw-error" style="display:none"></p>
-          <p class="admin-success" id="pw-success" style="display:none">비밀번호가 변경되었습니다!</p>
-          <div class="admin-actions">
-            <button class="btn" id="pw-back-btn">← 목록</button>
-            <button class="btn btn--primary" id="pw-save-btn">변경 저장</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
 
 <script src="script.js" defer></script>
 </body>
