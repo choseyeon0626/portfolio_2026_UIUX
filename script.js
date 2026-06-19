@@ -94,18 +94,42 @@ function applyStaggeredPositions() {
   if (!board) return;
   const items    = [...board.querySelectorAll('.work-item')];
   const isMobile = window.innerWidth <= 760;
-  items.forEach((el, i) => {
-    if (isMobile) {
-      el.style.gridColumn = '';
-      el.style.gridRow    = '';
-    } else {
-      const rowIdx    = Math.floor(i / 3);
-      const colIdx    = i % 3;
-      const startCol  = (colIdx * 3) + (rowIdx % 4) + 1;
-      const col       = Math.min(startCol, 10);
-      el.style.gridColumn = col + '/span 3';
-      el.style.gridRow    = (rowIdx + 1) + '';
+
+  // 에디토리얼(매거진) 그리드 패턴: 12컬럼 기준, 5칸이 한 사이클
+  // [4, 4, 4]  → 작은 카드 3개가 한 줄 (4+4+4=12)
+  // [8, 4]     → 큰 강조 카드 1개 + 작은 카드 1개가 한 줄 (8+4=12)
+  // 위 두 줄(아이템 5개)이 반복되며, 전체적으로 균일하되 5개 중 1개만 강조됨
+  const PATTERN = [4, 4, 4, 8, 4];
+
+  if (isMobile) {
+    items.forEach((el, i) => {
+      // 모바일 2열: 패턴상 8칸(강조 카드)이었던 자리만 풀폭(2/2), 나머지는 1칸
+      const span = PATTERN[i % PATTERN.length];
+      const featured = span === 8;
+      el.style.gridColumn = featured ? '1/span 2' : 'span 1';
+      el.style.gridRow    = 'auto';
+      if (featured) el.setAttribute('data-featured', '');
+      else el.removeAttribute('data-featured');
+    });
+    return;
+  }
+
+  // 데스크탑: 패턴 순서대로 폭을 부여하면서, 12컬럼을 넘기면 다음 줄로 이동
+  let col = 1, row = 1, cursor = 0;
+  items.forEach((el) => {
+    const span = PATTERN[cursor % PATTERN.length];
+    if (col + span - 1 > 12) {       // 현재 줄에 안 들어가면 다음 줄로
+      col = 1;
+      row += 1;
     }
+    el.style.gridColumn = col + '/span ' + span;
+    el.style.gridRow    = row + '';
+    // 강조 카드(8칸 폭)는 data-featured로 표시 → CSS에서 가로형 비율 적용
+    if (span >= 8) el.setAttribute('data-featured', '');
+    else el.removeAttribute('data-featured');
+    col += span;
+    if (col > 12) { col = 1; row += 1; }
+    cursor += 1;
   });
 }
 window.addEventListener('resize', applyStaggeredPositions);
