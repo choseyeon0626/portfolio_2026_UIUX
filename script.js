@@ -95,15 +95,10 @@ function applyStaggeredPositions() {
   const items    = [...board.querySelectorAll('.work-item')];
   const isMobile = window.innerWidth <= 760;
 
-  // 에디토리얼(매거진) 그리드 패턴: 12컬럼 기준, 5칸이 한 사이클
-  // [4, 4, 4]  → 작은 카드 3개가 한 줄 (4+4+4=12)
-  // [8, 4]     → 큰 강조 카드 1개 + 작은 카드 1개가 한 줄 (8+4=12)
-  // 위 두 줄(아이템 5개)이 반복되며, 전체적으로 균일하되 5개 중 1개만 강조됨
   const PATTERN = [4, 4, 4, 8, 4];
 
   if (isMobile) {
     items.forEach((el, i) => {
-      // 모바일 2열: 패턴상 8칸(강조 카드)이었던 자리만 풀폭(2/2), 나머지는 1칸
       const span = PATTERN[i % PATTERN.length];
       const featured = span === 8;
       el.style.gridColumn = featured ? '1/span 2' : 'span 1';
@@ -114,17 +109,15 @@ function applyStaggeredPositions() {
     return;
   }
 
-  // 데스크탑: 패턴 순서대로 폭을 부여하면서, 12컬럼을 넘기면 다음 줄로 이동
   let col = 1, row = 1, cursor = 0;
   items.forEach((el) => {
     const span = PATTERN[cursor % PATTERN.length];
-    if (col + span - 1 > 12) {       // 현재 줄에 안 들어가면 다음 줄로
+    if (col + span - 1 > 12) {
       col = 1;
       row += 1;
     }
     el.style.gridColumn = col + '/span ' + span;
     el.style.gridRow    = row + '';
-    // 강조 카드(8칸 폭)는 data-featured로 표시 → CSS에서 가로형 비율 적용
     if (span >= 8) el.setAttribute('data-featured', '');
     else el.removeAttribute('data-featured');
     col += span;
@@ -324,17 +317,89 @@ document.addEventListener('keydown', e => {
 });
 
 /* ════════════════════════════════════════════
-   REVEAL + NAV
+   REVEAL + NAV + SCROLL INTERACTION
    ════════════════════════════════════════════ */
-const sections    = document.querySelectorAll('section[id]');
-const navLinks    = document.querySelectorAll('.site-nav a');
-const revealItems = document.querySelectorAll('.reveal');
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.site-nav a');
 
+/* ── 1) intro h1: 로드 즉시 아래→위 ── */
+const introH1 = document.querySelector('.intro__statement h1');
+if (introH1) {
+  introH1.style.cssText += ';opacity:0;transform:translateY(64px);transition:opacity 1100ms cubic-bezier(0.16,1,0.3,1),transform 1100ms cubic-bezier(0.16,1,0.3,1)';
+  setTimeout(() => { introH1.style.opacity='1'; introH1.style.transform='translateY(0)'; }, 60);
+}
+
+/* ── 2) intro copy 항목들: 순차 페이드업 ── */
+document.querySelectorAll('.intro__copy > *').forEach((el, i) => {
+  el.style.cssText += `;opacity:0;transform:translateY(24px);transition:opacity 900ms cubic-bezier(0.16,1,0.3,1) ${200+i*150}ms,transform 900ms cubic-bezier(0.16,1,0.3,1) ${200+i*150}ms`;
+  setTimeout(() => { el.style.opacity='1'; el.style.transform='translateY(0)'; }, 60);
+});
+
+/* ── 3) 카드·블록 reveal Observer ── */
 const revealObs = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('is-visible'); });
-}, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
-revealItems.forEach(el => revealObs.observe(el));
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add('is-visible');
+    revealObs.unobserve(e.target);
+  });
+}, { threshold: 0.10, rootMargin: '0px 0px -4% 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+/* ── 4) 섹션 전체 슬라이드업 (intro 제외) ── */
+sections.forEach(sec => { if (sec.id !== 'intro') sec.classList.add('section-slide'); });
+const sectionSlideObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add('is-visible');
+    sectionSlideObs.unobserve(e.target);
+  });
+}, { threshold: 0.05, rootMargin: '0px 0px -2% 0px' });
+document.querySelectorAll('.section-slide').forEach(el => sectionSlideObs.observe(el));
+
+/* ── 5) profile 블록: 뷰포트 진입 후 순차 등장 ── */
+const profileGrid = document.querySelector('.profile__grid');
+if (profileGrid) {
+  const blocks = [...profileGrid.querySelectorAll('.profile-block')];
+  blocks.forEach((bl, i) => {
+    bl.style.cssText += `;opacity:0;transform:translateY(40px);transition:opacity 850ms cubic-bezier(0.16,1,0.3,1) ${i*100}ms,transform 850ms cubic-bezier(0.16,1,0.3,1) ${i*100}ms`;
+  });
+  new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      blocks.forEach(bl => { bl.style.opacity='1'; bl.style.transform='translateY(0)'; });
+      e.target._obs && e.target._obs.unobserve(e.target);
+    });
+  }, { threshold: 0.07 }).observe(profileGrid);
+}
+
+/* ── 6) section-title: 왼쪽에서 슬라이드인 ── */
+document.querySelectorAll('.section-title').forEach(el => {
+  el.style.cssText += ';opacity:0;transform:translateX(-40px);transition:opacity 950ms cubic-bezier(0.16,1,0.3,1),transform 950ms cubic-bezier(0.16,1,0.3,1)';
+  new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      e.target.style.opacity='1'; e.target.style.transform='translateX(0)';
+    });
+  }, { threshold: 0.25 }).observe(el);
+});
+
+/* ── 7) work 카드: 같은 행끼리 딜레이 차등 ── */
+function applyCardDelays() {
+  const cards = [...document.querySelectorAll('.work-item.reveal')];
+  const rowMap = new Map();
+  cards.forEach(card => {
+    const top = Math.round(card.getBoundingClientRect().top + window.scrollY / 8) * 8;
+    if (!rowMap.has(top)) rowMap.set(top, []);
+    rowMap.get(top).push(card);
+  });
+  rowMap.forEach(group => {
+    group.forEach((card, i) => card.style.setProperty('--card-delay', `${i * 75}ms`));
+  });
+}
+window.addEventListener('load', applyCardDelays);
+window.addEventListener('resize', applyCardDelays);
+
+/* ── 8) nav 활성화 ── */
 const sectionObs = new IntersectionObserver((entries) => {
   entries.forEach(e => {
     if (!e.isIntersecting) return;
