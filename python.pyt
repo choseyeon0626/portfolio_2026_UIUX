@@ -1,4 +1,4 @@
-python3 - << 'PYEOF'
+python3 - 'PYEOF'
 with open('/home/claude/index.html', 'r', encoding='utf-8') as f:
     content = f.read()
 
