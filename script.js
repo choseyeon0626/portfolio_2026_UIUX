@@ -11,7 +11,54 @@ const _firebaseConfig = {
   appId: "1:559541074110:web:8eaba6bb445b6a8a9a46ef"
 };
 if (!firebase.apps.length) firebase.initializeApp(_firebaseConfig);
-const _db = firebase.database();
+const _db   = firebase.database();
+const _auth = firebase.auth();
+
+/* ════════════════════════════════════════════
+   관리자 인증 (Firebase Rules와 연동)
+   - 허용 계정: d2531@e-mirim.hs.kr
+   - 이메일 인증(verified)까지 확인해야 실제로 쓰기 권한이 통과됨
+     (Realtime Database 규칙: auth.token.email_verified === true)
+   ════════════════════════════════════════════ */
+const ADMIN_EMAIL = 'd2531@e-mirim.hs.kr';
+let isAdminAuthed = false;
+
+// 로그인 시도 함수 (로그인 폼/버튼에서 호출)
+function adminLogin(email, password) {
+  return _auth.signInWithEmailAndPassword(email, password)
+    .then(cred => {
+      const user = cred.user;
+      if (user.email !== ADMIN_EMAIL) {
+        _auth.signOut();
+        throw new Error('허용되지 않은 계정입니다.');
+      }
+      if (!user.emailVerified) {
+        _auth.signOut();
+        throw new Error('이메일 인증이 완료되지 않았습니다. 인증 후 다시 로그인해주세요.');
+      }
+      return user;
+    });
+}
+
+function adminLogout() {
+  return _auth.signOut();
+}
+
+// 로그인 상태 변화 감시 → 관리자 UI on/off
+_auth.onAuthStateChanged(user => {
+  const adminBtn   = document.getElementById('admin-toggle-btn');
+  const adminPanel = document.getElementById('admin-panel');
+
+  isAdminAuthed = !!(user && user.email === ADMIN_EMAIL && user.emailVerified);
+
+  if (user && !isAdminAuthed) {
+    // 인증되지 않은 계정으로 로그인된 상태라면 즉시 로그아웃 처리
+    _auth.signOut();
+  }
+
+  if (adminPanel) adminPanel.style.display = isAdminAuthed ? '' : 'none';
+  if (adminBtn) adminBtn.classList.toggle('is-authed', isAdminAuthed);
+});
 
 /* ════════════════════════════════════════════
    STATE
